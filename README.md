@@ -24,6 +24,4 @@ Author: Vinod Perera (Perera1325)
 
 - Idea of a game as "image + integer solution", API URL and CSV/Base64 format:
   the unit's example code by Marc Conrad (provided on BREO) and the Fish Game API docs.
-- Code in this repository was written with the help of an AI assistant (Claude,
-  Anthropic), then reviewed and understood by me. Generative AI is permitted for code
-  in this assignment. Add details of any further help here.
+
