@@ -78,4 +78,13 @@ class FileUserStoreTest {
         Files.writeString(file, "only-one-field\n");
         assertThrows(AuthException.class, () -> new FileUserStore(file));
     }
+
+    @Test
+    void allReturnsEveryStoredUser() throws Exception {
+        FileUserStore store = new FileUserStore(file);
+        store.create(new User("Vinod", "h1", 3));
+        store.create(new User("Kasun", "h2", 7));
+        assertEquals(2, store.all().size());
+        assertEquals(2, new FileUserStore(file).all().size()); // survives a restart
+    }
 }

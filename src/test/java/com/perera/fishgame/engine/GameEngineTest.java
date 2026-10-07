@@ -163,4 +163,28 @@ class GameEngineTest {
     void nullProviderIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> new GameEngine(null));
     }
+
+    @Test
+    void timeOutCostsALifeLikeAWrongAnswer() throws Exception {
+        engine.nextRound();
+        assertEquals(AnswerResult.WRONG, engine.timeOut());
+        assertEquals(GameEngine.STARTING_LIVES - 1, engine.getLives());
+        assertEquals(0, engine.getScore());
+    }
+
+    @Test
+    void repeatedTimeOutsEndTheGame() throws Exception {
+        engine.nextRound();
+        AnswerResult last = null;
+        for (int i = 0; i < GameEngine.STARTING_LIVES; i++) {
+            last = engine.timeOut();
+        }
+        assertEquals(AnswerResult.GAME_OVER, last);
+        assertTrue(engine.isGameOver());
+    }
+
+    @Test
+    void timeOutNeedsARoundInProgress() {
+        assertThrows(IllegalStateException.class, () -> engine.timeOut());
+    }
 }

@@ -59,6 +59,11 @@ public final class FileUserStore implements UserStore {
     }
 
     @Override
+    public synchronized List<User> all() {
+        return new ArrayList<>(users.values());
+    }
+
+    @Override
     public synchronized void updateBestScore(String username, int score) throws AuthException {
         User user = users.get(key(username));
         if (user == null) {

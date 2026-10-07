@@ -6,7 +6,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -168,6 +170,23 @@ public class AuthService {
     public synchronized void recordScore(String token, int score) throws AuthException {
         Session session = requireSession(token);
         store.updateBestScore(session.getUsername(), score);
+    }
+
+    /**
+     * The best players, highest score first (ties by name). Only a logged-in
+     * user may look at it, and it contains names and scores only, never hashes.
+     */
+    public synchronized List<ScoreEntry> leaderboard(String token, int limit)
+            throws AuthException {
+        requireSession(token);
+        int n = Math.max(1, Math.min(limit, 100));
+        return store.all().stream()
+                .filter(u -> u.bestScore() > 0)
+                .sorted(Comparator.comparingInt(User::bestScore).reversed()
+                        .thenComparing(u -> u.username().toLowerCase(Locale.ROOT)))
+                .limit(n)
+                .map(u -> new ScoreEntry(u.username(), u.bestScore()))
+                .toList();
     }
 
     // ------------------------------------------------------------------

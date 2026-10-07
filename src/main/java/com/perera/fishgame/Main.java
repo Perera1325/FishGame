@@ -1,6 +1,7 @@
 package com.perera.fishgame;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -8,6 +9,7 @@ import javax.swing.SwingUtilities;
 import com.perera.fishgame.auth.AuthException;
 import com.perera.fishgame.auth.AuthService;
 import com.perera.fishgame.auth.FileUserStore;
+import com.perera.fishgame.auth.ScoreEntry;
 import com.perera.fishgame.auth.Session;
 import com.perera.fishgame.engine.GameEngine;
 import com.perera.fishgame.service.FishApiClient;
@@ -24,6 +26,8 @@ public class Main {
 
     /** Accounts are kept here (ignored by Git: it contains password hashes). */
     private static final Path USER_FILE = Path.of("fishgame-users.db");
+
+    private static final int LEADERBOARD_SIZE = 10;
 
     public static void main(String[] args) {
         // Swing windows must be created on the Event Dispatch Thread.
@@ -49,7 +53,8 @@ public class Main {
         }
         GameEngine engine = new GameEngine(new FishApiClient());
         GameWindow window = new GameWindow(engine, session.getUsername(), best,
-                score -> saveScore(auth, session, score));
+                score -> saveScore(auth, session, score),
+                () -> loadLeaderboard(auth, session));
         window.setVisible(true);
         window.startGame();
     }
@@ -60,6 +65,16 @@ public class Main {
         } catch (AuthException e) {
             JOptionPane.showMessageDialog(null, e.getMessage(), "Score not saved",
                     JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private static List<ScoreEntry> loadLeaderboard(AuthService auth, Session session) {
+        try {
+            return auth.leaderboard(session.getToken(), LEADERBOARD_SIZE);
+        } catch (AuthException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage(), "Leaderboard unavailable",
+                    JOptionPane.WARNING_MESSAGE);
+            return List.of();
         }
     }
 }

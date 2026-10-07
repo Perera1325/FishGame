@@ -73,17 +73,39 @@ public class GameEngine {
      * @throws IllegalStateException if there is no round or the game is over
      */
     public AnswerResult submitAnswer(int answer) {
+        requireRoundInProgress();
+        if (answer == current.getSolution()) {
+            score++;
+            listeners.forEach(l -> l.onScoreChanged(score));
+            return AnswerResult.CORRECT;
+        }
+        return loseLife();
+    }
+
+    /**
+     * The player ran out of time for this round. It counts as a wrong answer:
+     * one life is lost. The timer itself lives in the GUI; the engine only
+     * applies the rule, so it stays free of any Swing code.
+     *
+     * @return {@link AnswerResult#WRONG}, or {@link AnswerResult#GAME_OVER} if
+     *         that was the last life
+     * @throws IllegalStateException if there is no round or the game is over
+     */
+    public AnswerResult timeOut() {
+        requireRoundInProgress();
+        return loseLife();
+    }
+
+    private void requireRoundInProgress() {
         if (current == null) {
             throw new IllegalStateException("No round in progress; call nextRound() first");
         }
         if (isGameOver()) {
             throw new IllegalStateException("Game is over; call restart() first");
         }
-        if (answer == current.getSolution()) {
-            score++;
-            listeners.forEach(l -> l.onScoreChanged(score));
-            return AnswerResult.CORRECT;
-        }
+    }
+
+    private AnswerResult loseLife() {
         lives--;
         listeners.forEach(l -> l.onLivesChanged(lives));
         if (lives == 0) {

@@ -1,5 +1,6 @@
 package com.perera.fishgame.auth;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -14,6 +15,9 @@ public interface UserStore {
 
     /** Adds a user. Returns false, and changes nothing, if the name is taken. */
     boolean create(User user) throws AuthException;
+
+    /** A copy of every user, in no particular order. */
+    List<User> all() throws AuthException;
 
     /** Raises the stored best score; a lower score is ignored. */
     void updateBestScore(String username, int score) throws AuthException;

@@ -11,7 +11,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -37,6 +39,11 @@ class AuthServiceTest {
         @Override
         public boolean create(User user) {
             return users.putIfAbsent(user.username().toLowerCase(Locale.ROOT), user) == null;
+        }
+
+        @Override
+        public List<User> all() {
+            return new ArrayList<>(users.values());
         }
 
         @Override
@@ -219,5 +226,47 @@ class AuthServiceTest {
         Session s = auth.login("Vinod", pw("goodpassword1"));
         clock.advance(Duration.ofHours(2));
         assertThrows(AuthException.class, () -> auth.recordScore(s.getToken(), 5));
+    }
+
+    private Session registerAndLogin(String name, int score) throws Exception {
+        auth.register(name, pw("goodpassword1"));
+        Session s = auth.login(name, pw("goodpassword1"));
+        auth.recordScore(s.getToken(), score);
+        return s;
+    }
+
+    @Test
+    void leaderboardIsSortedBestFirstAndHidesZeroScores() throws Exception {
+        Session a = registerAndLogin("Alice", 3);
+        registerAndLogin("Bob", 9);
+        registerAndLogin("Carol", 0);
+        List<ScoreEntry> board = auth.leaderboard(a.getToken(), 10);
+        assertEquals(2, board.size());
+        assertEquals("Bob", board.get(0).username());
+        assertEquals(9, board.get(0).bestScore());
+        assertEquals("Alice", board.get(1).username());
+    }
+
+    @Test
+    void leaderboardTiesAreBrokenByName() throws Exception {
+        Session z = registerAndLogin("Zed", 5);
+        registerAndLogin("Amy", 5);
+        List<ScoreEntry> board = auth.leaderboard(z.getToken(), 10);
+        assertEquals("Amy", board.get(0).username());
+        assertEquals("Zed", board.get(1).username());
+    }
+
+    @Test
+    void leaderboardRespectsTheLimit() throws Exception {
+        Session s = registerAndLogin("User1", 1);
+        registerAndLogin("User2", 2);
+        registerAndLogin("User3", 3);
+        assertEquals(2, auth.leaderboard(s.getToken(), 2).size());
+    }
+
+    @Test
+    void leaderboardNeedsAValidSession() throws Exception {
+        assertThrows(AuthException.class, () -> auth.leaderboard("made-up-token", 10));
+        assertThrows(AuthException.class, () -> auth.leaderboard(null, 10));
     }
 }
