@@ -17,7 +17,7 @@ Author: Vinod Perera (Perera1325)
 
 - [x] Stage 1: project, engine, API client, unit tests
 - [x] Stage 2: Swing GUI and events
-- [ ] Stage 3: login, sign-up, hashed passwords, database, sessions
+- [x] Stage 3: login, sign-up, hashed passwords, database, sessions
 - [ ] Stage 4: leaderboard, timer, polish
 
 ## Sources and attribution

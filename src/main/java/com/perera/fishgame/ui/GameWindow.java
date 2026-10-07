@@ -8,6 +8,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.util.concurrent.ExecutionException;
+import java.util.function.IntConsumer;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -49,15 +50,22 @@ import com.perera.fishgame.service.GameProviderException;
  * method moves its work back onto the EDT with {@link #onEdt(Runnable)}
  * (Swing components may only be changed on the EDT).
  *
+ * <p>The window knows which player is logged in and shows the player's best
+ * score. When a game ends it reports the final score through a callback, so the
+ * window itself does not need to know how or where scores are saved.
+ *
  * <p>Author: Vinod Perera. (The unit's example GUI had the buttons and an
- * ActionListener; the engine events, keyboard input, background loading and
- * error handling are my own additions.)
+ * ActionListener; the engine events, keyboard input, background loading, error
+ * handling and player/best-score display are my own additions.)
  */
 public final class GameWindow extends JFrame implements GameListener {
 
     private static final long serialVersionUID = 1L;
 
     private final transient GameEngine engine;
+    private final String playerName;
+    private final transient IntConsumer onGameFinished;
+    private int bestScore;
 
     private final JLabel imageLabel = new JLabel("", SwingConstants.CENTER);
     private final JLabel scoreLabel = new JLabel();
@@ -69,9 +77,20 @@ public final class GameWindow extends JFrame implements GameListener {
     /** True while a round is being loaded; answers are ignored meanwhile. */
     private boolean loading = false;
 
-    public GameWindow(GameEngine engine) {
-        super("Fish Game");
+    /**
+     * @param engine         the game rules
+     * @param playerName     the logged-in player, shown in the title
+     * @param bestScore      the player's best score so far
+     * @param onGameFinished called (on the EDT) with the final score of each
+     *                       finished game
+     */
+    public GameWindow(GameEngine engine, String playerName, int bestScore,
+            IntConsumer onGameFinished) {
+        super("Fish Game - " + playerName);
         this.engine = engine;
+        this.playerName = playerName;
+        this.bestScore = bestScore;
+        this.onGameFinished = onGameFinished;
         buildLayout();
         installKeyboardShortcuts();
         engine.addListener(this); // subscribe to game events
@@ -253,9 +272,16 @@ public final class GameWindow extends JFrame implements GameListener {
     public void onGameOver(int finalScore) {
         onEdt(() -> {
             setDigitsEnabled(false);
-            statusLabel.setText("Game over! Final score: " + finalScore);
+            statusLabel.setText("Game over, " + playerName + "! Final score: " + finalScore);
             actionButton.setText("Play again");
             actionButton.setVisible(true);
+            if (finalScore > bestScore) {
+                bestScore = finalScore;
+                showScore(finalScore);
+            }
+            // Report after the current event has finished, so a dialog (if the
+            // callback shows one) cannot block the engine in the middle of its work.
+            SwingUtilities.invokeLater(() -> onGameFinished.accept(finalScore));
         });
     }
 
@@ -264,7 +290,7 @@ public final class GameWindow extends JFrame implements GameListener {
     // ------------------------------------------------------------------
 
     private void showScore(int score) {
-        scoreLabel.setText("Score: " + score);
+        scoreLabel.setText("Score: " + score + "    Best: " + bestScore);
     }
 
     private void showLives(int lives) {
